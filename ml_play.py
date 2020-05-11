@@ -1,7 +1,7 @@
 import pickle
 import numpy as np
 from mlgame.communication import ml as comm
-import os.path as path
+from os import path
 
 def ml_loop(side: str):
     """
@@ -22,16 +22,15 @@ def ml_loop(side: str):
     ball_served = False
     filename1p = path.join(path.dirname(__file__),"save","clf_SVC_pingpong1p.pickle")
     filename2p = path.join(path.dirname(__file__),"save","clf_SVC_pingpong2p.pickle")
-    with open(filename1p, 'rb') as file1p:
-        clf1p = pickle.load(file1p)
-    with open(filename2p, 'rb') as file2p:
-        clf2p = pickle.load(file2p)
+    with open(filename1p, 'rb') as file:
+        clf1p = pickle.load(file)
+    with open(filename2p, 'rb') as file:
+        clf2p = pickle.load(file)
 
 
     # 2. Inform the game process that ml process is ready before start the loop.
-    scene_info = comm.recv_from_game()
     
-    s = [93,93]
+    
     def get_direction(VectorX,VectorY):
         if(VectorX>=0 and VectorY>=0):
             return 0
@@ -43,20 +42,34 @@ def ml_loop(side: str):
             return 3
         else:
             return 4
+    def move_to(player, pred) : #move platform to predicted position to catch ball 
+        if player == '1P':
+            if scene_info["platform_1P"][0]+20  > (pred-10) and scene_info["platform_1P"][0]+20 < (pred+10): return 0 # NONE
+            elif scene_info["platform_1P"][0]+20 <= (pred-10) : return 1 # goes right
+            else : return 2 # goes left
+        else :
+            if scene_info["platform_2P"][0]+20  > (pred-10) and scene_info["platform_2P"][0]+20 < (pred+10): return 0 # NONE
+            elif scene_info["platform_2P"][0]+20 <= (pred-10) : return 1 # goes right
+            else : return 2 # goes left
+    #2.
+    comm.ml_ready()
     # 3. Start an endless loop.
     while True:
+        scene_info = comm.recv_from_game()
+
         feature = []
-        feature.append(sceneInfo['ball'][0])
-        feature.append(sceneInfo['ball'][1])
-        feature.append(sceneInfo['platform_1P'][0])
-        feature.append(sceneInfo['platform_1P'][1])
-        feature.append(sceneInfo['platform_2P'][0])
-        feature.append(sceneInfo['platform_2P'][1])
-        feature.append(sceneInfo['ball_speed'][0])
-        feature.append(sceneInfo['ball_speed'][1])
-        feature.append(get_direction(sceneInfo['ball_speed'][0],sceneInfo['ball_speed'][1]))
+        feature.append(scene_info['ball'][0])
+        feature.append(scene_info['ball'][1])
+        feature.append(scene_info['platform_1P'][0])
+        #feature.append(scene_info['platform_1P'][1])
+        feature.append(scene_info['platform_2P'][0])
+        #feature.append(scene_info['platform_2P'][1])
+        feature.append(scene_info['ball_speed'][0])
+        feature.append(scene_info['ball_speed'][1])
+        #feature.append(get_direction(scene_info['ball_speed'][0],scene_info['ball_speed'][1]))
 
         feature = np.array(feature)
+        feature = feature.reshape((-1,6))
 
         # 3.2. If either of two sides wins the game, do the updating or
         #      resetting stuff and inform the game process when the ml process
@@ -75,9 +88,11 @@ def ml_loop(side: str):
             ball_served = True
         else:
             if side == "1P":
-                command = clf1p.predict(feature)
+                command = move_to('1P',clf1p.predict(feature))
+                print(clf1p.predict(feature))
             else:
-                command = clf2p.predict(feature)
+                command = move_to('2P',clf2p.predict(feature))
+                print(clf2p.predict(feature))
 
             if command == 0:
                 comm.send_to_game({"frame": scene_info["frame"], "command": "NONE"})
