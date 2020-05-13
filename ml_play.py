@@ -20,7 +20,7 @@ def ml_loop(side: str):
     # === Here is the execution order of the loop === #
     # 1. Put the initialization code here
     ball_served = False
-    filename1p = path.join(path.dirname(__file__),"save","clf_SVR_pingpong1p.pickle")
+    filename1p = path.join(path.dirname(__file__),"save","clf_SVR1_pingpong1p.pickle")
     filename2p = path.join(path.dirname(__file__),"save","clf_SVR_pingpong2p.pickle")
     with open(filename1p, 'rb') as file:
         clf1p = pickle.load(file)
@@ -44,12 +44,12 @@ def ml_loop(side: str):
             return 4
     def move_to(player, pred) : #move platform to predicted position to catch ball 
         if player == '1P':
-            if scene_info["platform_1P"][0]+10  > (pred) and scene_info["platform_1P"][0]+10 < (pred): return 0 # NONE
-            elif scene_info["platform_1P"][0]+10 <= (pred) : return 1 # goes right
+            if scene_info["platform_1P"][0]  > (pred) and scene_info["platform_1P"][0] < (pred): return 0 # NONE
+            elif scene_info["platform_1P"][0] <= (pred) : return 1 # goes right
             else : return 2 # goes left
         else :
-            if scene_info["platform_2P"][0]+10  > (pred) and scene_info["platform_2P"][0]+10 < (pred): return 0 # NONE
-            elif scene_info["platform_2P"][0]+10 <= (pred) : return 1 # goes right
+            if scene_info["platform_2P"][0]  > (pred) and scene_info["platform_2P"][0] < (pred): return 0 # NONE
+            elif scene_info["platform_2P"][0] <= (pred) : return 1 # goes right
             else : return 2 # goes left
     #2.
     comm.ml_ready()
